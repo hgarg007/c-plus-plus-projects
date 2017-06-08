@@ -1,0 +1,489 @@
+#include <stdio.h>
+#include <string.h>
+#include <sqlca.h>
+#include<cmath>
+#include<fstream>
+#include "controller.h"
+#include "wonderland.h"
+#include "employee.h"
+#include<iostream>
+using namespace std;
+
+//EXEC SQL INCLUDE SQLCA;
+
+
+EXEC SQL BEGIN DECLARE SECTION;
+
+char username[21] = "GHT08_grp8@orcl";
+char password[7] = "tcsghy";
+char name[30],address[40],contactNumber[11],designation[8],gender;
+int id,age,x,tid;
+
+EXEC SQL END DECLARE SECTION;
+
+int WonderlandModel::openConnection()
+{
+ EXEC SQL CONNECT :username IDENTIFIED BY :password;
+if(sqlca.sqlcode <0)
+ return -1;
+else
+return 1;
+}
+
+int WonderlandModel:: empId=1000;
+
+WonderlandModel::WonderlandModel() {
+}
+
+void WonderlandModel:: addToVector(Employee emp) {
+	empList.push_back(emp);
+}
+
+int WonderlandModel:: generateEmpId() {
+	return ++empId;
+}
+
+int WonderlandModel:: isEmpIdExist(int empId) {
+	id=empId;
+	int count=0;
+	if(openConnection() != -1) {
+		
+		EXEC SQL DECLARE EMPLOYEE_CURSOR1 CURSOR FOR SELECT id FROM employee where id=:id;
+		
+		EXEC SQL OPEN EMPLOYEE_CURSOR1;
+		for(;;) {
+			EXEC SQL FETCH EMPLOYEE_CURSOR1 INTO :id;
+			if(sqlca.sqlcode != 1403) { 
+				count++;
+			}
+			else
+				break;
+		}
+	
+	EXEC SQL CLOSE EMPLOYEE_CURSOR1;
+	EXEC SQL COMMIT WORK RELEASE;
+	}
+	if(count!=0)
+		return 1;
+	else 
+		return -1;
+}
+
+vector<Employee> WonderlandModel:: getEmpListName(string name1) { 
+
+	strcpy(name,name1.c_str());
+	vector<Employee> e;
+	e.clear();
+	if(openConnection() != -1) {
+		
+		EXEC SQL DECLARE EMPLOYEE_CURSOR12 CURSOR FOR SELECT 
+		id, name, age, gender, designation, address,  contactNumber FROM employee where name=:name;
+		
+		EXEC SQL OPEN EMPLOYEE_CURSOR12;
+		for(;;) {
+			EXEC SQL FETCH EMPLOYEE_CURSOR12 INTO :id, :name, :age, :gender, :designation, :address,  :contactNumber ;
+			//cout<<sqlcode.sqlerr.sqlerrm;
+			if(sqlca.sqlcode != 1403) { 
+				Employee emp(id, age, gender, name, address, contactNumber, designation);
+				e.push_back(emp);
+			}
+			else
+			break;
+		}
+	
+	EXEC SQL CLOSE EMPLOYEE_CURSOR12;
+	EXEC SQL COMMIT WORK RELEASE;
+	
+	}
+	return e;
+}
+
+string WonderlandModel ::myStripe(char *temp) {
+string str="";
+	for(int i=0;temp[i]!='\0' && !((temp[i]==' ') && (temp[i+1]==' '));i++) {
+		str+=temp[i];
+	}	
+	return str;
+}
+
+void WonderlandModel ::makeFileBackup() {
+
+	ofstream proFile;
+	proFile.open("backup.txt",ios::out);
+	//proFile<<"ID"<<":"<<"name"<<":"<<"age"<<":"<<"gender"<<":"<<"address"<<":"<<"designation"<<":"<<"contactNumber"<<" "<<"\n";
+
+	if(openConnection()==1) {
+	EXEC SQL DECLARE EMPLOYEE_CURSOR25 CURSOR FOR SELECT 
+	id, name, age, gender, designation ,address , contactNumber FROM employee order by id asc;
+	EXEC SQL OPEN EMPLOYEE_CURSOR25;
+
+		for(;;) {
+			EXEC SQL FETCH EMPLOYEE_CURSOR25 INTO :id, :name, :age, :gender, :designation, :address, :contactNumber ;
+			string tname=myStripe(name);
+			string taddress=myStripe(address);
+			string tdesignation=myStripe(designation);
+			if(sqlca.sqlcode != 1403) { 
+				proFile<<id<<":"<<tname<<":"<<age<<":"<<gender<<":"<<taddress<<":"<<tdesignation<<":"<<contactNumber<<":\n";
+			}
+			else
+			break;
+		}
+	
+	
+	EXEC SQL CLOSE EMPLOYEE_CURSOR25;
+	EXEC SQL COMMIT WORK RELEASE;
+	}
+
+	proFile.close();
+}
+
+void WonderlandModel ::retrieveFile() {
+
+	openConnection();
+	EXEC SQL DELETE FROM EMPLOYEE;
+	
+	int flag1=1, ptr=-1, pflag, sum=0, k ,i=0;
+	char temp;
+	ifstream infile;
+	infile.open("backup.txt");
+	
+	std::string line;
+	while (1)
+	{
+		getline(infile, line);
+		if(infile.eof())
+			break;
+			
+		for(i=0;;i++) {
+			if(line[i]==':' && flag1==1) {
+				pflag=i-1;
+				sum=0;
+				
+				for(k=ptr+1; k<i; k++) {
+					temp= *(line.substr(k,1).c_str());
+					sum+= ((int) ((temp))-48) * (int ) pow(10, pflag--);
+				}
+				
+				id=sum;
+				
+				ptr=i;
+			}
+			if(line[i]==':' && flag1==2) {
+				strcpy(name, line.substr(ptr+1, i-ptr-1).c_str());
+				ptr=i;
+			}
+			if(line[i]==':' && flag1==3) {
+				sum=0;
+				pflag=i-ptr-2;
+				
+				for(k=ptr+1; k<i; k++) {
+					temp= *(line.substr(k,1).c_str());
+					sum+= ((int) ((temp))-48) * (int ) pow(10, pflag--);
+				}
+				age=sum;
+				
+				ptr=i;
+			}
+			if(line[i]==':' && flag1==4) {
+				gender= *(line.substr(ptr+1, i-ptr-1).c_str());
+				ptr=i;
+			}
+			if(line[i]==':' && flag1==5) {
+				strcpy(address, line.substr(ptr+1, i-ptr-1).c_str());
+				ptr=i;
+			}
+			if(line[i]==':' && flag1==6) {
+				strcpy(designation, line.substr(ptr+1, i-ptr-1).c_str());
+				ptr=i;
+			}
+			if(line[i]==':' && flag1==7) {
+				strcpy(contactNumber, line.substr(ptr+1, i-ptr-1).c_str());
+				flag1=1;
+				ptr=-1;
+				break;
+			}
+			if(line[i]==':')
+				flag1++;
+		}
+		
+		EXEC SQL INSERT INTO employee values(:id,:name,:age,:gender,:designation,:address,:contactNumber);	
+		
+		
+	}
+	EXEC SQL COMMIT WORK RELEASE;
+	
+	infile.close();
+
+}
+
+int WonderlandModel ::makeEmployeeBackup() {
+	
+	if(openConnection()==1) {
+		
+		EXEC SQL DELETE FROM EMPLOYEEBACKUPM;
+		EXEC SQL INSERT INTO EMPLOYEEBACKUPM SELECT * FROM EMPLOYEE ;
+		if(sqlca.sqlcode<0) 
+			return -1;
+		else {
+			EXEC SQL COMMIT WORK RELEASE;
+			return 1;
+		}
+	}
+
+}
+
+int WonderlandModel:: viewEmpDetails(int i, Employee &emp) {
+	
+	id=i;
+	if(openConnection() != -1) {
+	EXEC SQL DECLARE EMPLOYEE_CURSOR CURSOR FOR SELECT
+	id, name, age, gender, designation ,address , contactNumber FROM employee where id=:id;
+
+	EXEC SQL OPEN EMPLOYEE_CURSOR;
+	for(;;) {
+		EXEC SQL FETCH EMPLOYEE_CURSOR INTO :id, :name, :age, :gender, :designation, :address, :contactNumber ;
+		 if(sqlca.sqlcode != 1403) { 
+		emp.setEmpId(id);
+		emp.setEmpName(name);
+		emp.setEmpDesignation(designation);
+		emp.setEmpAge(age);
+		emp.setEmpGender(gender);
+		emp.setEmpAddress(address);
+		emp.setEmpContactNumber(contactNumber);
+		if(openConnection() != -1)
+			break;
+		}
+		else
+			return -1;
+	}
+	EXEC SQL COMMIT WORK RELEASE;
+	EXEC SQL CLOSE EMPLOYEE_CURSOR;
+	
+	return 1;
+	}
+	
+}
+
+int WonderlandModel:: viewEmpDetailsBackup(int i,Employee &emp) {
+
+	id=i;
+	if(openConnection() != -1)
+		 {
+	EXEC SQL DECLARE EMPLOYEE_CURSOR5 CURSOR FOR SELECT
+	id, name, age, gender, address, designation, contactNumber FROM employeebackup where id=:id;
+
+	EXEC SQL OPEN EMPLOYEE_CURSOR5;
+	for(;;) {
+		EXEC SQL FETCH EMPLOYEE_CURSOR5 INTO :id, :name, :age, :gender, :address, :designation, :contactNumber ;
+		 if(sqlca.sqlcode != 1403) { 
+		emp.setEmpId(id);
+		emp.setEmpName(name);
+		emp.setEmpDesignation(designation);
+		emp.setEmpAge(age);
+		emp.setEmpGender(gender);
+		emp.setEmpAddress(address);
+		emp.setEmpContactNumber(contactNumber);
+		if(openConnection() != -1)
+			break;
+		}
+		else
+			return -1;
+	}
+	
+	EXEC SQL CLOSE EMPLOYEE_CURSOR5;
+	EXEC SQL COMMIT WORK RELEASE;
+	return 1;
+	}
+	else 
+		return -1;
+
+}
+
+vector<Employee> WonderlandModel:: getEmpList() {
+
+	vector<Employee> e;
+	e.clear();
+	if(openConnection() != -1) {
+		
+		EXEC SQL DECLARE EMPLOYEE_CURSOR2 CURSOR FOR SELECT 
+		id, name, age, gender, address, designation, contactNumber FROM employee order by id asc;
+		
+		EXEC SQL OPEN EMPLOYEE_CURSOR2;
+		for(;;) {
+			EXEC SQL FETCH EMPLOYEE_CURSOR2 INTO :id, :name, :age, :gender, :address, :designation, :contactNumber ;
+			if(sqlca.sqlcode != 1403) { 
+				Employee emp(id, age, gender, name, address, contactNumber, designation);
+				e.push_back(emp);
+				
+			}
+			else
+			break;
+		}
+	
+	EXEC SQL CLOSE EMPLOYEE_CURSOR2;
+	EXEC SQL COMMIT WORK RELEASE;
+	
+	}
+	return e;
+}
+
+int WonderlandModel:: addEmp(struct EmployeeStruct empStruct) {
+	if(openConnection()) {
+		strcpy(name,(empStruct.name).c_str());
+		strcpy(address,(empStruct.address).c_str());
+		strcpy(designation,(empStruct.designation).c_str());
+		strcpy(contactNumber,(empStruct.contactNumber).c_str());
+		age=empStruct.age;
+		gender=empStruct.gender;
+		
+					
+		
+		EXEC SQL INSERT INTO employee values(id.nextval,:name,:age,:gender,:designation,:address,:contactNumber);
+		EXEC SQL INSERT INTO employeeBackup values(id.currval,:name,:age,:gender,:designation,:address,:contactNumber);
+		
+		
+		EXEC SQL DECLARE EMPLOYEE_CURSOR7 CURSOR FOR SELECT id.currval from dual;
+		EXEC SQL OPEN EMPLOYEE_CURSOR7;
+		EXEC SQL FETCH EMPLOYEE_CURSOR7 INTO :id;
+		EXEC SQL CLOSE EMPLOYEE_CURSOR7;
+		
+		EXEC SQL COMMIT WORK RELEASE;
+		return id;
+		}	
+	else
+		return -2;
+}
+
+
+int WonderlandModel:: deleteEmp(int empId) {
+	id=empId;
+		
+		if(openConnection()==1) {
+			
+			EXEC SQL DELETE FROM employee where id=:id;
+			EXEC SQL COMMIT WORK RELEASE;
+			return 1;
+		}
+		else
+		return -1;		
+	
+}
+
+int WonderlandModel:: isEmpIdExistBackup(int empId) {
+	for(int i=0; i<empListBackup.size(); i++) {
+		if(empId==empListBackup[i].getEmpId())
+			return i;	
+	}
+	return -1;
+}
+
+vector<Employee> WonderlandModel:: getEmpBackupList() {
+
+	vector<Employee> e;
+	e.clear();
+	if(openConnection() != -1) {
+		
+		EXEC SQL DECLARE EMPLOYEE_CURSOR4 CURSOR FOR SELECT 
+		id, name, age, gender, address, designation, contactNumber FROM EMPLOYEEBackup order by id asc;
+		
+		EXEC SQL OPEN EMPLOYEE_CURSOR4;
+		for(;;) {
+			EXEC SQL FETCH EMPLOYEE_CURSOR4 INTO :id, :name, :age, :gender, :address, :designation, :contactNumber ;
+			if(sqlca.sqlcode != 1403) { 
+				Employee emp(id, age, gender, name, address, contactNumber, designation);
+				e.push_back(emp);
+				
+			}
+			else
+			break;
+		}
+	EXEC SQL CLOSE EMPLOYEE_CURSOR4;
+	EXEC SQL COMMIT WORK RELEASE;
+	}
+	return e;
+}
+
+vector<Employee> WonderlandModel:: getEmpBackupListM() {
+
+	vector<Employee> e;
+	e.clear();
+	if(openConnection() != -1) {
+		
+		EXEC SQL DECLARE EMPLOYEE_CURSOR9 CURSOR FOR SELECT 
+		id, name, age, gender, address, designation, contactNumber FROM EMPLOYEEBackupm order by id asc;
+		
+		EXEC SQL OPEN EMPLOYEE_CURSOR9;
+		for(;;) {
+			EXEC SQL FETCH EMPLOYEE_CURSOR9 INTO :id, :name, :age, :gender, :address, :designation, :contactNumber ;
+			if(sqlca.sqlcode != 1403) { 
+				Employee emp(id, age, gender, name, address, contactNumber, designation);
+				e.push_back(emp);
+				
+			}
+			else
+			break;
+		}
+	EXEC SQL CLOSE EMPLOYEE_CURSOR9;
+	EXEC SQL COMMIT WORK RELEASE;
+	}
+	return e;
+}
+
+int WonderlandModel:: updateEmpDetails(struct EmployeeStruct empStruct, int empId) {
+	
+	id=empId;
+	strcpy(name,(empStruct.name).c_str());
+	strcpy(address,(empStruct.address).c_str());
+	strcpy(designation,(empStruct.designation).c_str());
+	strcpy(contactNumber,(empStruct.contactNumber).c_str());
+	age=empStruct.age;
+	gender=empStruct.gender;
+	
+	if(isEmpIdExist(empId)==1){
+		if(openConnection()){
+			
+			if(empStruct.age!=-1) {
+				EXEC SQL UPDATE employee SET AGE= :age where id=:id;
+				EXEC SQL UPDATE employeebackup SET AGE= :age where id=:id;
+				//EXEC SQL COMMIT WORK RELEASE;
+			}
+			
+			if(empStruct.gender!='@') {
+				EXEC SQL UPDATE employee SET GENDER= :gender where id=:id;
+				EXEC SQL UPDATE employeebackup SET GENDER= :gender where id=:id;
+				//EXEC SQL COMMIT WORK RELEASE;
+			}
+			
+			if(empStruct.name!="@") {
+				EXEC SQL UPDATE employee SET NAME= :name where id=:id;
+				EXEC SQL UPDATE employeebackup SET NAME= :name where id=:id;
+			}
+			
+			if(empStruct.address!="@") {
+				EXEC SQL UPDATE employee SET ADDRESS= :address where id=:id;
+				EXEC SQL UPDATE employeebackup SET ADDRESS= :address where id=:id;
+				//EXEC SQL COMMIT WORK RELEASE;
+			}
+			
+			if(empStruct.contactNumber!="@") {
+				EXEC SQL UPDATE employee SET contactNumber= :contactNumber where id=:id;
+				EXEC SQL UPDATE employeebackup SET contactNumber= :contactNumber where id=:id;
+				//EXEC SQL COMMIT WORK RELEASE;
+			}
+			if(empStruct.designation!="@") {
+				EXEC SQL UPDATE employee SET designation= :designation where id=:id;
+				EXEC SQL UPDATE employeebackup SET designation= :designation where id=:id;
+				//EXEC SQL COMMIT WORK RELEASE;
+			}
+			EXEC SQL COMMIT WORK RELEASE;
+			if(sqlca.sqlcode <0) {
+				cout<<" Error in Execute Update "<<sqlca.sqlcode<<" "<<sqlca.sqlerrm.sqlerrmc<<endl;
+				return -2;
+			}
+			return 1;
+		}
+		
+	}
+	else
+		return -1;
+}

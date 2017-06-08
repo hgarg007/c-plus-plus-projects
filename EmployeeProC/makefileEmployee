@@ -1,0 +1,20 @@
+aa: main.o controller.o wonderland.o ui.o employee.o 
+	g++ -z muldefs -w *.cpp -I /usr/include/oracle/11.2/client64/ -L /usr/lib/oracle/11.2/client64/lib/ -lclntsh -o aa
+
+main.o: controller.h wonderland.h ui.h
+	g++ -c main.cpp -I /usr/include/oracle/11.2/client64/ -L /usr/lib/0
+
+controller.o: controller.h empstruct.h
+	g++ -c controller.cpp -I /usr/include/oracle/11.2/client64/ -L /usr/lib/0
+
+wonderland.o: wonderland.h employee.h empstruct.h
+	g++ -c wonderland.cpp -I /usr/include/oracle/11.2/client64/ -L /usr/lib/0
+
+ui.o: ui.h employee.h wonderland.h
+	g++ -c ui.cpp -I /usr/include/oracle/11.2/client64/ -L /usr/lib/0
+
+employee.o: employee.h
+	g++ -c employee.cpp -I /usr/include/oracle/11.2/client64/ -L /usr/lib/0
+
+wonderland.cpp: wonderland.pc
+	PROC CODE=CPP CPP_SUFFIX=cpp PARSE=NONE wonderland.pc
