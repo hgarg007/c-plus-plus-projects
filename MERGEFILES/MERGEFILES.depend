@@ -1,0 +1,47 @@
+# depslib dependency file v1.0
+1504698672 source:c:\users\lenovo\desktop\vector\mergefiles\main.cpp
+	<iostream>
+	<fstream>
+	<string>
+	<thread>
+	<cstdio>
+	"Producer.h"
+	"Consumer.h"
+	"Buffer.h"
+	"src\helper.cpp"
+
+1504552160 c:\users\lenovo\desktop\vector\mergefiles\include\producer.h
+	<string>
+	"Buffer.h"
+
+1504698289 c:\users\lenovo\desktop\vector\mergefiles\include\buffer.h
+	<mutex>
+	<chrono>
+	<condition_variable>
+	<string>
+	<queue>
+
+1504552092 c:\users\lenovo\desktop\vector\mergefiles\include\consumer.h
+	"Buffer.h"
+	<string>
+
+1504698276 source:c:\users\lenovo\desktop\vector\mergefiles\src\buffer.cpp
+	"Buffer.h"
+	<cstring>
+	<iostream>
+
+1504699140 source:c:\users\lenovo\desktop\vector\mergefiles\src\consumer.cpp
+	"Consumer.h"
+	<fstream>
+	<iostream>
+	<ios>
+
+1504693098 source:c:\users\lenovo\desktop\vector\mergefiles\src\producer.cpp
+	"Producer.h"
+	<fstream>
+	<iostream>
+
+1504698644 c:\users\lenovo\desktop\vector\mergefiles\src\helper.cpp
+	<string>
+	<fstream>
+

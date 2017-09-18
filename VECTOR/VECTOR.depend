@@ -1,0 +1,14 @@
+# depslib dependency file v1.0
+1504696063 source:c:\users\lenovo\desktop\vector\vector\main.cpp
+	<iostream>
+	"src/vector.cpp"
+
+1504432185 c:\users\lenovo\desktop\vector\vector\include\vector.h
+
+1504441226 source:c:\users\lenovo\desktop\vector\vector\src\vector.cpp
+	"vector.h"
+	<iostream>
+
+1504700920 c:\users\lenovo\desktop\vector\vector\src\vector.cpp
+	<iostream>
+
